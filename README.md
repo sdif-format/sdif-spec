@@ -2,7 +2,7 @@
 
 This repository contains the official, stable format specification and conformance test suite for the **Semantic Data Interchange Format (SDIF)**.
 
-It serves as the **Single Point of Truth (SSOT)** for all parser and tool implementations.
+It serves as the **Single Point of Truth (SPOT)** for all parser and tool implementations.
 
 ## Repository Structure
 
@@ -19,7 +19,7 @@ It serves as the **Single Point of Truth (SSOT)** for all parser and tool implem
 
 ## Conformance Verification
 
-All conforming parser and tool implementations MUST stay aligned with the fixtures in `conformance/`. 
+All conforming parser and tool implementations MUST stay aligned with the fixtures in `conformance/`.
 Any changes to SDIF syntax, types, or canonical rules must be reflected in the spec and conformance suite before grammar or library extensions are implemented.
 
 ## License
