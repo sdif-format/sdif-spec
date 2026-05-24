@@ -90,7 +90,7 @@ This document defines the technical specification for SDIF, a compact semantic d
 
 The `1.0.0` specification document records the stable core specification. `@sdif 1.0` identifies the stable core syntax and semantic contract. The package version may advance independently from the document format version.
 
-Core v1 behavior includes parsing, the reference AST shape, schema-driven validation, canonical-syntax-v1, safe default policies, local includes behind explicit policy, and `.sdif.ai` reversibility to canonical source. Versioned or not-yet-implemented extensions include remote includes, remote schemas, complex namespaces, deep graph validation, digital signatures, advanced type unions, semantic numeric/date normalization, and non-declarative rule execution.
+Core v1 behavior includes parsing, the reference AST shape, schema-driven validation, canonical-syntax-v1, safe default policies, local includes behind explicit policy, and `.sdif.ai` reversibility to canonical source. Reserved extension surfaces include remote includes, remote schemas, complex namespaces, deep graph validation, digital signatures, advanced type unions, semantic numeric/date normalization, and non-declarative rule execution.
 
 ---
 
@@ -331,9 +331,10 @@ k Plan
 
 A conforming parser MUST construct a syntactic AST representing the document structure. Table cells are captured as raw strings in the initial AST. The parser MUST preserve string literals and quotedness metadata verbatim.
 
-### 18.1 Minimum normative AST
+### 18.1 Minimum Abstract Document Model
 
-The Minimum normative AST consists of the following components:
+The minimum abstract document model consists of the following components:
+
 - Directives: Represent meta-commands and configuration.
 - Fields: Represent key-value bindings.
 - Objects: Represent nested sections.
@@ -361,13 +362,13 @@ A validator MUST support the following schema validation keywords:
 
 The validation contract MUST check:
 
-* Required fields.
-* Types.
-* Enumerations.
-* Allowed tables.
-* Required columns.
-* Allowed relation predicates.
-* Allowed rule functions.
+- Required fields.
+- Types.
+- Enumerations.
+- Allowed tables.
+- Required columns.
+- Allowed relation predicates.
+- Allowed rule functions.
 
 ### 19.1 Schema Responsibilities
 
