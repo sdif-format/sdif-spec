@@ -7,28 +7,26 @@
 
 # SDIF — Semantic Data Interchange Format
 
-**Format version:** 1.0
-**Specification document version:** 1.1.0
-**Python package version:** 1.1.0
-Status: Stable Core Specification
-Date: 2026-05-24
-License: MIT
-
 ## Table of Contents
 
 - [1. Abstract](#1-abstract)
 - [2. Status of This Document](#2-status-of-this-document)
+  - [2.1 v1 stable contract](#21-v1-stable-contract)
 - [3. Terminology and Conventions](#3-terminology-and-conventions)
   - [3.1 Requirement Keywords](#31-requirement-keywords)
 - [4. Overview](#4-overview)
+  - [4.1 Comparison with Other Formats](#41-comparison-with-other-formats)
+  - [4.2 AI Compatibility and Agent Interoperability](#42-ai-compatibility-and-agent-interoperability)
 - [5. Goals and Non-Goals](#5-goals-and-non-goals)
   - [5.1 Design Goals](#51-design-goals)
   - [5.2 Non-Goals](#52-non-goals)
 - [6. Data Model](#6-data-model)
 - [7. Document Structure](#7-document-structure)
 - [8. Lexical Rules](#8-lexical-rules)
+  - [8.1 Streaming Considerations](#81-streaming-considerations)
 - [9. Directives](#9-directives)
 - [10. Scalar Fields](#10-scalar-fields)
+  - [10.1 Type Precedence](#101-type-precedence)
 - [11. Objects](#11-objects)
 - [12. Lists](#12-lists)
 - [13. Tables](#13-tables)
@@ -41,7 +39,11 @@ License: MIT
   - [17.3 SDIF AI View](#173-sdif-ai-view)
 - [18. Parsing Requirements](#18-parsing-requirements)
 - [19. Validation Requirements](#19-validation-requirements)
+  - [19.1 Schema Responsibilities](#191-schema-responsibilities)
+  - [19.2 Minimal Schema Example](#192-minimal-schema-example)
+  - [19.3 Validation Pipeline Phases](#193-validation-pipeline-phases)
 - [20. Canonicalization](#20-canonicalization)
+  - [20.1 Stable Hashing and Signing](#201-stable-hashing-and-signing)
 - [21. JSON Mapping](#21-json-mapping)
 - [22. Diagnostics](#22-diagnostics)
 - [23. Security Considerations](#23-security-considerations)
@@ -60,6 +62,7 @@ License: MIT
 - [Appendix C. Python Reference Implementation Notes](#appendix-c-python-reference-implementation-notes)
 - [Appendix D. Reserved Extension Surfaces](#appendix-d-reserved-extension-surfaces)
 - [Appendix E. Changelog](#appendix-e-changelog)
+- [Appendix F. Style Recommendations](#appendix-f-style-recommendations)
 
 ---
 
@@ -71,7 +74,23 @@ This document defines the technical specification for SDIF, a compact semantic d
 
 ## 2. Status of This Document
 
-This document records the stable core specification of SDIF. `@sdif 1.0` identifies the stable core syntax and semantic contract. The package version may advance independently from the document format version.
+**Format version:** 1.0
+**Specification document version:** 1.1.0
+**Python package version:** 1.1.0
+**Name:** Semantic Data Interchange Format
+**Short name:** SDIF
+**Recommended source extension:** `.sdif`
+**Recommended canonical extension:** `.sdif.canon`
+**Recommended AI-optimized extension:** `.sdif.ai`
+**Proposed MIME type:** `application/sdif`
+**Encoding:** UTF-8
+**Design mode:** schema-first, semantic-first, token-aware, canonicalization-ready
+
+### 2.1 v1 stable contract
+
+The `1.0.0` specification document records the stable core specification. `@sdif 1.0` identifies the stable core syntax and semantic contract. The package version may advance independently from the document format version.
+
+Core v1 behavior includes parsing, the reference AST shape, schema-driven validation, canonical-syntax-v1, safe default policies, local includes behind explicit policy, and `.sdif.ai` reversibility to canonical source. Versioned or not-yet-implemented extensions include remote includes, remote schemas, complex namespaces, deep graph validation, digital signatures, advanced type unions, semantic numeric/date normalization, and non-declarative rule execution.
 
 ---
 
@@ -89,7 +108,20 @@ SDIF combines the strict structural model of JSON, the readability of YAML and T
 
 The format is structured around the core principle of maximizing semantic density per token without sacrificing validation safety or parsing determinism.
 
-Core v1 behavior includes parsing, the reference AST shape, schema-driven validation, canonical-syntax-v1, safe default policies, local includes behind explicit policy, and `.sdif.ai` reversibility to canonical source.
+### 4.1 Comparison with Other Formats
+
+* **JSON**: JSON is universal and excellent for APIs. SDIF is more compact for repeated structured data and more expressive for semantic documents.
+* **YAML**: YAML is human-friendly but highly flexible. SDIF is less ambiguous and easier to canonicalize.
+* **TOML**: TOML is excellent for configuration. SDIF adds compact tables, semantic relations, declarative rules, and canonicalization-oriented semantics.
+* **CSV**: CSV is compact for tables but weak for hierarchy, types, relations, and validation. SDIF adopts tabular compactness without being limited to flat data.
+* **RDF/Turtle**: RDF/Turtle is powerful for semantic graphs. SDIF aims to be more practical for mixed structured documents, validation manifests, and agent-oriented exchange.
+* **Markdown**: Markdown is ideal for prose. SDIF supports bounded prose while preserving a machine-validatable structure.
+
+### 4.2 AI Compatibility and Agent Interoperability
+
+SDIF helps AI models by reducing repetition, making semantics explicit, separating structured data from narrative text, distinguishing relations from fields, supporting declared aliases, and reducing syntactic noise compared to JSON.
+
+AI agents processing SDIF MUST distinguish document content, external instructions, and runtime policy. AI tools SHOULD use clear aliases and avoid excessively wide tables.
 
 ---
 
@@ -98,7 +130,6 @@ Core v1 behavior includes parsing, the reference AST shape, schema-driven valida
 ### 5.1 Design Goals
 
 SDIF aims to achieve the following:
-
 1. Maximize semantic density per token for efficient processing by machine workflows and AI agents.
 2. Provide deterministic parsing and canonicalization.
 3. Enable schema-driven validation and stable hashing.
@@ -108,7 +139,6 @@ SDIF aims to achieve the following:
 ### 5.2 Non-Goals
 
 SDIF does not aim to:
-
 1. Function as a general-purpose programming language or execute arbitrary code.
 2. Replace SQL, RDF, OWL, or general-purpose formats like JSON for public APIs where JSON is the established contract.
 3. Allow highly flexible syntax at the cost of ambiguity.
@@ -118,7 +148,6 @@ SDIF does not aim to:
 ## 6. Data Model
 
 An SDIF document is an ordered sequence of statements. Every conforming document model is composed of:
-
 1. Directives
 2. Scalar fields
 3. Objects
@@ -145,18 +174,22 @@ Indentation MUST use spaces. Tabs MUST NOT be used for indentation in strict mod
 
 Comments start with the hash character (`#`) outside strings and multiline blocks and continue to the end of the line.
 
+### 8.1 Streaming Considerations
+
+SDIF supports streaming because statements are line-oriented, tables/relations can be processed row by row, and narrative blocks are explicitly delimited. However, full semantic validation and canonicalization with sorting require accumulating the entire document.
+
 ---
 
 ## 9. Directives
 
 Directives start with `@` and provide format metadata. The following directives are reserved in SDIF:
-- `@sdif`: Declares the SDIF format version (e.g., `@sdif 1.0`). `@sdif 1.0` identifies the stable core syntax and semantic contract.
-- `@sdif.ai`: Declares the token-optimized SDIF AI projection.
-- `@profile`: Declares the document profile.
-- `@vocab`: Declares a vocabulary.
-- `@base`: Declares a base URI or semantic namespace.
-- `@namespace`: Declares a namespace prefix. The v1 namespace form is `@namespace prefix iri`. Complex namespace behavior is a versioned extension.
-- `@include`: Includes another local document or vocabulary. `@include` is disabled by default.
+* `@sdif`: Declares the SDIF format version (e.g., `@sdif 1.0`). `@sdif 1.0` identifies the stable core syntax and semantic contract.
+* `@sdif.ai`: Declares the token-optimized SDIF AI projection.
+* `@profile`: Declares the document profile.
+* `@vocab`: Declares a vocabulary.
+* `@base`: Declares a base URI or semantic namespace.
+* `@namespace`: Declares a namespace prefix. The v1 namespace form is `@namespace prefix iri`. Complex namespace behavior is a versioned extension.
+* `@include`: Includes another local document or vocabulary. `@include` is disabled by default.
 
 Remote includes and remote schemas are reserved extension surfaces and are rejected by the current reference implementation.
 
@@ -167,16 +200,25 @@ Remote includes and remote schemas are reserved extension surfaces and are rejec
 A scalar field consists of a key identifier and a value separated by horizontal space. A scalar value outside tables MUST be quoted if it contains spaces, commas intended as text, parentheses, brackets, quotes, comment markers, or non-identifier characters.
 
 Quoted scalar fields outside tables MUST satisfy:
-
 1. **Single-line closure**: The closing double quote `"` MUST appear on the same logical line as the opening double quote `"`.
 2. **No trailing content**: No non-whitespace, non-comment characters may follow the closing double quote on the same line.
+
+### 10.1 Type Precedence
+
+When an unquoted token could match multiple types, the following precedence applies:
+1. `null`
+2. boolean
+3. datetime
+4. date
+5. duration
+6. number
+7. identifier value
 
 ---
 
 ## 11. Objects
 
 Objects represent nested associative maps and use two-space indentation.
-
 ```sdif
 owner:
   id team.platform
@@ -188,11 +230,9 @@ owner:
 ## 12. Lists
 
 Lists can be represented as inline bracketed sequences:
-
 ```sdif
 tags [registry,validation,release]
 ```
-
 Alternatively, block lists MAY be represented as repeated `-` scalar fields inside an object block.
 
 ---
@@ -216,12 +256,10 @@ A column name ending in `$` is a `.sdif.ai` string-preserved column marker. Cons
 ## 14. Relations
 
 Relations describe semantic relationships expressed as subject-predicate-object triples:
-
 ```sdif
 rel:
   release.v2 depends_on release.v1
 ```
-
 A predicate MUST be allowed by the declared schema or vocabulary. In v1 source, a relation has exactly three parts.
 
 ---
@@ -229,27 +267,23 @@ A predicate MUST be allowed by the declared schema or vocabulary. In v1 source, 
 ## 15. Declarative Rules
 
 Rules represent validation constraints using parenthesized expressions. They are not executable code.
-
 ```sdif
 rules:
   (deny missing(evidence))
   (warn eq(authority,Unknown))
 ```
-
-A rule row MUST correspond to a logical `RuleExpression(action, function, args)` node.
+A parser MUST preserve the rule source text. If rule expression parsing is enabled, the parser or validator SHOULD expose a structured `RuleExpression` representation, such as a logical `RuleExpression(action, function, args)` node.
 
 ---
 
 ## 16. Narrative Blocks
 
 Narrative blocks capture multi-line unstructured text using triple-quote delimiters `"""`.
-
 ```sdif
 intent """
 Define the validation requirements.
 """
 ```
-
 Narrative blocks nested within object blocks MUST close with the triple-quote delimiter aligned at the exact indentation level where it opened. Body lines within the narrative block are normalized by removing the indentation prefix corresponding to the opening line's indentation level.
 
 ---
@@ -267,7 +301,6 @@ The Canonical profile (`.sdif.canon`) is optimized for machine workflows. It MUS
 ### 17.3 SDIF AI View
 
 The AI View profile (`.sdif.ai`) is optimized for compact AI model context windows. It MAY employ compact table rows without indentation and alias headers:
-
 ```sdif
 @sdif.ai 1.0
 alias[k=kind,st=status]
@@ -287,32 +320,101 @@ A conforming parser MUST construct a syntactic AST representing the document str
 A conforming validator MUST load an SDIF schema and apply type and structure constraints as a post-parsing step. Schema-driven typing is applied during validation or normalization, not during raw parsing.
 
 A validator MUST support the following schema validation keywords:
-- `fields[name,type,required,default]:`
-- `tables[name,ordered,primary_key]:`
-- `columns[table,name,type,required]:`
-- `relations[predicate,subject_type,object_type,required]:`
-- `rule_functions[name,min_args,max_args]:`
+* `fields[name,type,required,default]:`
+* `tables[name,ordered,primary_key]:`
+* `columns[table,name,type,required]:`
+* `relations[predicate,subject_type,object_type,required]:`
+* `rule_functions[name,min_args,max_args]:`
 
 The validation contract MUST check:
-- - Required fields.
-- - Types.
-- - Enumerations.
-- - Allowed tables.
-- - Required columns.
-- - Allowed relation predicates.
-- - Allowed rule functions.
+* Required fields.
+* Types.
+* Enumerations.
+* Allowed tables.
+* Required columns.
+* Allowed relation predicates.
+* Allowed rule functions.
+
+### 19.1 Schema Responsibilities
+
+A schema defines the expected shape and semantics of a document:
+1. Document kind through a required `kind` field and/or an `Enum(...)` field type.
+2. Required fields.
+3. Optional fields and their types (Null, Boolean, Integer, Decimal, String, Identifier, Path, Date, DateTime, Duration, Enum, List).
+4. Allowed tables, required columns, and whether table row order is semantically significant.
+5. Allowed relation predicates, and allowed rule functions.
+
+### 19.2 Minimal Schema Example
+
+```sdif
+@sdif 1.0
+kind Schema
+id example.plan.v1
+schema sdif.schema.v1
+authority Canonical
+lifecycle Active
+
+for_kind Plan
+
+fields[name,type,required,default]:
+  kind	Enum(Plan)	true	null
+  id	Identifier	true	null
+  schema	Identifier	true	null
+  authority	Enum(Canonical,Reference,Working,Derived,External,Unknown)	false	Unknown
+  lifecycle	Enum(Draft,Active,Deprecated,Superseded,Archived,Quarantined)	false	Draft
+  title	String	true	null
+  status	Enum(open,closed,blocked)	true	open
+  priority	Enum(P0,P1,P2,P3)	false	P2
+
+tables[name,ordered,primary_key]:
+  milestones	true	id
+  scope	false	in
+
+columns[table,name,type,required]:
+  milestones	id	Identifier	true
+  milestones	status	Enum(done,pending,blocked)	true
+  milestones	gate	Identifier	false
+  milestones	evidence	Path	false
+  scope	in	Identifier	true
+  scope	out	Identifier	true
+
+relations[predicate,subject_type,object_type,required]:
+  depends_on	Identifier	Identifier	false
+  validated_by	Identifier	Identifier	false
+  governed_by	Identifier	Identifier	false
+  emits	Identifier	Path	false
+
+rule_functions[name,min_args,max_args]:
+  missing	1	1
+  dangling	1	1
+  invalid	1	1
+  unknown	1	1
+  eq	2	2
+```
+
+### 19.3 Validation Pipeline Phases
+
+1. **Lexing**: Validates UTF-8 tokens, closed string literals, and comment placement.
+2. **Parsing**: Verifies indentation, closed blocks, table row column arity, and relation triples.
+3. **Normalization**: Resolves namespaces, local includes (if enabled), and aliases.
+4. **Schema Validation**: Enforces type compatibility, enum lists, required fields, and column shapes.
+5. **Semantic Validation**: Evaluates dangling relations, lifecycle constraints, and declarative rule predicates.
 
 ---
 
 ## 20. Canonicalization
 
-Canonicalization converts an SDIF Source document into its unique canonical representation. Conforming canonicalizers MUST use UTF-8 encoding, LF line endings, and two-space indentation, removing all comments and blank lines. The output MUST end with exactly one LF character.
+Canonicalization converts an SDIF Source document into a deterministic canonical representation under the active SDIF version and schema policy. Conforming canonicalizers MUST use UTF-8 encoding, LF line endings, and two-space indentation, removing all comments and blank lines. The output MUST end with exactly one LF character.
+
+Unordered tables with a declared primary key are sorted by that key when a schema is provided. Relations and rules are sorted deterministically. Alias expansion, numeric normalization, date-time equivalence, and semantic merging remain future versioned policies.
+
+### 20.1 Stable Hashing and Signing
 
 Stable hashing is performed by computing SHA-256 over the canonicalized bytes:
-
 ```text
 sha256(sdif_canonical_bytes)
 ```
+Signatures should be applied directly to canonical bytes.
 
 ---
 
@@ -322,25 +424,26 @@ SDIF maps directly to JSON structures. Scalar fields map to key-value properties
 
 To represent heterogeneous or nested lists in JSON without expanding the core SDIF source grammar with list-of-block syntax, SDIF uses a reserved repeated `__item` object block convention. A scalar value inside a nested list is wrapped in a field named `__value`.
 
+Quoted scalar markers and `.sdif.ai` `$` table columns preserve JSON string semantics for values that otherwise look like `null`, booleans, numbers, or lists.
+
 ---
 
 ## 22. Diagnostics
 
 Conforming tools SHOULD produce structured diagnostics containing:
-- `code` (e.g., `SDIF_TABLE_ARITY`)
-- `severity` (`info`, `warn`, `deny`, `error`, `fatal`)
-- `message`
-- `line`
-- `column`
-- `path`
-- `hint`
+* `code` (e.g., `SDIF_TABLE_ARITY`)
+* `severity` (`info`, `warn`, `deny`, `error`, `fatal`)
+* `message`
+* `line`
+* `column`
+* `path`
+* `hint`
 
 ---
 
 ## 23. Security Considerations
 
 Conforming parsers and validators MUST implement defenses against:
-
 1. **Unbounded Include Loops**: A parser MUST reject include loops. `@include` is disabled by default.
 2. **Fs Exploits**: Traversal of parent directories MUST NOT be permitted unless explicitly enabled by local policy.
 3. **Alias Expansion Exploits**: Conforming AI tools MUST reject alias configurations targeting protected terms.
@@ -358,9 +461,9 @@ The `@sdif` version identifier represents the format specification. The package 
 ### 24.2 Media Type and File Extensions
 
 The recommended file extensions are:
-- `.sdif`: SDIF Source
-- `.sdif.canon`: SDIF Canonical
-- `.sdif.ai`: SDIF AI View
+* `.sdif`: SDIF Source
+* `.sdif.canon`: SDIF Canonical
+* `.sdif.ai`: SDIF AI View
 
 The proposed MIME type is `application/sdif`.
 
@@ -375,7 +478,6 @@ Conforming SDIF text MUST be processed as UTF-8. Non-ASCII characters are valid 
 ### 25.1 Parser Conformance
 
 A conforming SDIF Parser:
-
 1. MUST parse UTF-8 text and reject syntax errors.
 2. MUST build a syntactic AST preserving quotes and raw cell strings.
 3. MUST reject unclosed quoted fields or trailing content after close.
@@ -383,14 +485,12 @@ A conforming SDIF Parser:
 ### 25.2 Serializer Conformance
 
 A conforming SDIF Serializer:
-
 1. MUST output valid SDIF text.
 2. MUST escape reserved characters when generating string fields.
 
 ### 25.3 Canonicalizer Conformance
 
 A conforming SDIF Canonicalizer:
-
 1. MUST output UTF-8 text ending in a single LF.
 2. MUST sort fields and tables deterministically.
 3. MUST remove comments and redundant whitespace.
@@ -398,15 +498,14 @@ A conforming SDIF Canonicalizer:
 ### 25.4 Validator Conformance
 
 A conforming SDIF Validator:
-
 1. MUST apply schema-driven type checking.
-2. MUST evaluate declarative rules.
+2. MUST validate declared rule functions against the schema.
 3. MUST emit structured diagnostics for violations.
+4. MAY evaluate declarative rules when it implements the rule evaluation profile.
 
 ### 25.5 AI Projection Conformance
 
 A conforming AI Projector:
-
 1. MUST support `@sdif.ai` header and aliases.
 2. MUST preserve string types on columns with the `$` suffix.
 3. MUST project back to canonical SDIF source reversibly.
@@ -415,48 +514,139 @@ A conforming AI Projector:
 
 ## Appendix A. Grammar
 
-The EBNF grammar for SDIF core syntax:
+The complete EBNF grammar for SDIF core syntax:
 
 ```ebnf
 document        = spacing, statement*, EOF ;
-statement       = blank_line | comment_line | directive_line | alias_header | field_line | object_block | table_block | relation_block | rule_block | narrative_block ;
+
+statement       = blank_line
+                | comment_line
+                | directive_line
+                | alias_header
+                | field_line
+                | object_block
+                | table_block
+                | relation_block
+                | rule_block
+                | narrative_block
+                ;
+
 blank_line       = horizontal_space*, newline ;
 comment_line     = horizontal_space*, comment, newline ;
 comment          = "#", not_newline* ;
+
 newline          = "\n" | "\r\n" ;
 horizontal_space = " " | "\t" ;
 spacing          = (blank_line | comment_line)* ;
+
 directive_line  = "@", directive_name, directive_args?, inline_comment?, newline ;
 directive_name  = IDENT ;
 directive_args  = horizontal_space+, value, (horizontal_space+, value)* ;
+
 field_line      = key, horizontal_space+, value, inline_comment?, newline ;
 key             = IDENT ;
+
 object_block       = key, ":", inline_comment?, newline, indented_statement+ ;
 indented_statement = INDENT, statement_body, DEDENT? ;
-statement_body     = field_line | object_block | table_block | relation_block | rule_block | narrative_block | comment_line | blank_line ;
+statement_body     = field_line
+                   | object_block
+                   | table_block
+                   | relation_block
+                   | rule_block
+                   | narrative_block
+                   | comment_line
+                   | blank_line
+                   ;
+
 list            = "[", list_items?, "]" ;
 list_items      = value, (",", value)* ;
+
 table_block     = table_header, table_row+ ;
 table_header    = key, "[", column_list, "]", ":", inline_comment?, newline ;
 column_list     = column, (",", column)* ;
 column          = IDENT, ["$"] ;
 alias_header    = "alias", "[", alias_entry, (",", alias_entry)*, "]", inline_comment?, newline ;
 alias_entry     = IDENT, "=", IDENT ;
+
 table_row       = INDENT, table_cell, (HTAB, table_cell)*, inline_comment?, newline ;
+ai_table_row    = table_cell, HTAB, table_cell, (HTAB, table_cell)*, inline_comment?, newline ;
 table_cell      = table_cell_char* ;
+table_cell_char = any_char_except_htab_or_newline ;
 HTAB            = ? U+0009 horizontal tab ? ;
+
 relation_block  = "rel", ":", inline_comment?, newline, relation_row+ ;
-relation_row    = INDENT, relation_subject, horizontal_space+, relation_predicate, horizontal_space+, relation_object, inline_comment?, newline ;
+relation_row    = INDENT, relation_subject, horizontal_space+, relation_predicate,
+                  horizontal_space+, relation_object, inline_comment?, newline ;
+
+relation_subject   = IDENTIFIER_VALUE ;
+relation_predicate = IDENTIFIER_VALUE ;
+relation_object    = IDENTIFIER_VALUE | STRING ;
+
 rule_block      = "rules", ":", inline_comment?, newline, rule_row+ ;
 rule_row        = INDENT, expression, inline_comment?, newline ;
+
 expression      = "(", action_name, horizontal_space+, condition, ")" ;
 action_name     = "deny" | "warn" ;
 condition       = compact_call | IDENT ;
 compact_call    = function_name, "(", (value | compact_call), (",", (value | compact_call))* , ")" ;
+function_name   = IDENT ;
+expression_arg  = horizontal_space+, (value | expression) ;
+
+narrative_block   = key, horizontal_space+, multiline_string, inline_comment?, newline? ;
 multiline_string  = "\"\"\"", multiline_content, "\"\"\"" ;
+multiline_content = any_char_until_triple_quote* ;
+
+value           = null
+                | boolean
+                | datetime
+                | date
+                | duration
+                | number
+                | string
+                | list
+                | identifier_value
+                ;
+
+null            = "null" ;
+boolean         = "true" | "false" ;
+
 IDENT           = IDENT_START, IDENT_CONT* ;
 IDENT_START     = "A".."Z" | "a".."z" | "_" ;
 IDENT_CONT      = IDENT_START | "0".."9" | "-" ;
+
+identifier_value = IDENTIFIER_CHAR+ ;
+IDENTIFIER_CHAR  = "A".."Z"
+                 | "a".."z"
+                 | "0".."9"
+                 | "_"
+                 | "-"
+                 | "."
+                 | "/"
+                 | ":"
+                 ;
+
+number          = integer | decimal | scientific ;
+integer         = sign?, digit+ ;
+decimal         = sign?, digit+, ".", digit+ ;
+scientific      = sign?, digit+, ("." digit+)?, ("e" | "E"), sign?, digit+ ;
+sign            = "+" | "-" ;
+digit           = "0".."9" ;
+
+string          = quoted_string ;
+quoted_string   = "\"", quoted_char*, "\"" ;
+quoted_char     = escaped_char | normal_string_char ;
+escaped_char    = "\\", ("\\" | "\"" | "n" | "r" | "t" | "u", hex, hex, hex, hex) ;
+normal_string_char = any_char_except_quote_backslash_newline ;
+
+inline_comment  = horizontal_space+, "#", not_newline* ;
+
+date            = digit, digit, digit, digit, "-", digit, digit, "-", digit, digit ;
+datetime        = date, "T", digit, digit, ":", digit, digit, ":", digit, digit,
+                  fractional_seconds?, timezone ;
+fractional_seconds = ".", digit+ ;
+timezone        = "Z" | sign, digit, digit, ":", digit, digit ;
+duration        = "P", duration_body ;
+duration_body   = IDENTIFIER_CHAR+ ;
 ```
 
 ---
@@ -464,7 +654,6 @@ IDENT_CONT      = IDENT_START | "0".."9" | "-" ;
 ## Appendix B. Examples
 
 ### B.1 Complete Technical Plan
-
 ```sdif
 @sdif 1.0
 kind Plan
@@ -485,14 +674,14 @@ Define the minimum validation requirements for release v2.
 """
 
 scope[in,out]:
-	schema validation	ui redesign
-	canonicalization	feature expansion
+  schema validation	ui redesign
+  canonicalization	feature expansion
 
 milestones[id,status,gate,evidence]:
-	R1	done	validate-syntax	reports/syntax.md
-	R2	done	validate-canonical	reports/canonical.md
-	R3	pending	validate-schema	reports/schema.md
-	R4	pending	validate-semantics	reports/semantics.md
+  R1	done	validate-syntax	reports/syntax.md
+  R2	done	validate-canonical	reports/canonical.md
+  R3	pending	validate-schema	reports/schema.md
+  R4	pending	validate-semantics	reports/semantics.md
 
 rel:
   R3 depends_on R2
@@ -507,7 +696,6 @@ rules:
 ```
 
 ### B.2 Evidence Validation Report
-
 ```sdif
 @sdif 1.0
 kind EvidenceReport
@@ -522,18 +710,17 @@ verifier validator.core
 result pass
 
 checks[id,result,message]:
-	syntax	pass	source document parsed successfully
-	canonical	pass	canonical output is stable
+  syntax	pass	source document parsed successfully
+  canonical	pass	canonical output is stable
 
 artifacts[id,path,sha256]:
-	summary	reports/validation-summary.md	sha256:0000000000000000000000000000000000000000000000000000000000000000
+  summary	reports/validation-summary.md	sha256:0000000000000000000000000000000000000000000000000000000000000000
 
 rel:
   validation.report.v2 validates release.v2.validation_plan
 ```
 
 ### B.3 Semantic Registry
-
 ```sdif
 @sdif 1.0
 kind Registry
@@ -543,8 +730,8 @@ authority Canonical
 lifecycle Active
 
 entries[id,kind,lifecycle,authority,path,evidence]:
-	example.schema	Schema	Active	Canonical	schemas/example.schema.sdif	reports/schema.md
-	validator.core	Tool	Active	Canonical	tools/validator.md	reports/validator.md
+  example.schema	Schema	Active	Canonical	schemas/example.schema.sdif	reports/schema.md
+  validator.core	Tool	Active	Canonical	tools/validator.md	reports/validator.md
 
 rel:
   example.registry governed_by example.schema
@@ -562,7 +749,6 @@ rules:
 ### C.1 Command Line Interface
 
 The Python reference CLI is invoked via `sdif` or `python tools/sdif-cli.py`:
-
 ```bash
 sdif parse examples/plan.sdif
 sdif canon examples/plan.sdif
@@ -586,14 +772,14 @@ The repository benchmark derives JSON compact, JSON pretty, YAML, XML, CSV Bundl
 ### C.3 Reference AST Model
 
 The parser constructs the following AST node structure:
-- `Document(directives, statements)`
-- `Directive(name, args)`
-- `Field(key, value, quoted=False)`
-- `ObjectBlock(key, statements)`
-- `Table(name, columns, rows, quoted_columns=frozenset())`
-- `Relation(subject, predicate, object, object_quoted=False)`
-- `Rule(source, expression=None)`
-- `Narrative(key, text)`
+* `Document(directives, statements)`
+* `Directive(name, args)`
+* `Field(key, value, quoted=False)`
+* `ObjectBlock(key, statements)`
+* `Table(name, columns, rows, quoted_columns=frozenset())`
+* `Relation(subject, predicate, object, object_quoted=False)`
+* `Rule(source, expression=None)`
+* `Narrative(key, text)`
 
 ---
 
@@ -607,5 +793,31 @@ These are explicitly outside the scope of SDIF 1.0 stable core. Conforming 1.0 p
 
 ## Appendix E. Changelog
 
-- **1.0.0**: Stable release of the Semantic Data Interchange Format core schema.
-- **1.1.0**: Split specification files to independent repository layout, keeping pure specifications in the `sdif-spec` repository and reference implementation notes decoupled from the normative core.
+* **1.0.0**: Stable release of the Semantic Data Interchange Format core schema.
+* **1.1.0**: Split specification files to independent repository layout, keeping pure specifications in the `sdif-spec` repository and reference implementation notes decoupled from the normative core.
+
+---
+
+## Appendix F. Style Recommendations
+
+### F.1 Recommended Document Order
+
+Suggested source order:
+1. `@sdif` directive.
+2. Profile and vocabulary directives.
+3. `kind`.
+4. `id`.
+5. `schema`.
+6. `authority` and `lifecycle`.
+7. Timestamps and metadata.
+8. Title and summary.
+9. Objects, lists, and tables.
+10. Relations.
+11. Declarative rules.
+12. Narrative blocks.
+
+### F.2 Naming and Design Best Practices
+
+- Use `snake_case` for keys and dot notation for hierarchical identifiers.
+- Keep tables narrow (e.g., under 8-10 columns).
+- Favor semantic clarity in source relations over cryptic names.
