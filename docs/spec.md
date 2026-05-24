@@ -110,12 +110,12 @@ The format is structured around the core principle of maximizing semantic densit
 
 ### 4.1 Comparison with Other Formats
 
-* **JSON**: JSON is universal and excellent for APIs. SDIF is more compact for repeated structured data and more expressive for semantic documents.
-* **YAML**: YAML is human-friendly but highly flexible. SDIF is less ambiguous and easier to canonicalize.
-* **TOML**: TOML is excellent for configuration. SDIF adds compact tables, semantic relations, declarative rules, and canonicalization-oriented semantics.
-* **CSV**: CSV is compact for tables but weak for hierarchy, types, relations, and validation. SDIF adopts tabular compactness without being limited to flat data.
-* **RDF/Turtle**: RDF/Turtle is powerful for semantic graphs. SDIF aims to be more practical for mixed structured documents, validation manifests, and agent-oriented exchange.
-* **Markdown**: Markdown is ideal for prose. SDIF supports bounded prose while preserving a machine-validatable structure.
+- **JSON**: JSON is universal and excellent for APIs. SDIF is more compact for repeated structured data and more expressive for semantic documents.
+- **YAML**: YAML is human-friendly but highly flexible. SDIF is less ambiguous and easier to canonicalize.
+- **TOML**: TOML is excellent for configuration. SDIF adds compact tables, semantic relations, declarative rules, and canonicalization-oriented semantics.
+- **CSV**: CSV is compact for tables but weak for hierarchy, types, relations, and validation. SDIF adopts tabular compactness without being limited to flat data.
+- **RDF/Turtle**: RDF/Turtle is powerful for semantic graphs. SDIF aims to be more practical for mixed structured documents, validation manifests, and agent-oriented exchange.
+- **Markdown**: Markdown is ideal for prose. SDIF supports bounded prose while preserving a machine-validatable structure.
 
 ### 4.2 AI Compatibility and Agent Interoperability
 
@@ -130,6 +130,7 @@ AI agents processing SDIF MUST distinguish document content, external instructio
 ### 5.1 Design Goals
 
 SDIF aims to achieve the following:
+
 1. Maximize semantic density per token for efficient processing by machine workflows and AI agents.
 2. Provide deterministic parsing and canonicalization.
 3. Enable schema-driven validation and stable hashing.
@@ -139,6 +140,7 @@ SDIF aims to achieve the following:
 ### 5.2 Non-Goals
 
 SDIF does not aim to:
+
 1. Function as a general-purpose programming language or execute arbitrary code.
 2. Replace SQL, RDF, OWL, or general-purpose formats like JSON for public APIs where JSON is the established contract.
 3. Allow highly flexible syntax at the cost of ambiguity.
@@ -147,7 +149,8 @@ SDIF does not aim to:
 
 ## 6. Data Model
 
-An SDIF document is an ordered sequence of statements. Every conforming document model is composed of:
+An SDIF source document is composed of:
+
 1. Directives
 2. Scalar fields
 3. Objects
@@ -156,7 +159,9 @@ An SDIF document is an ordered sequence of statements. Every conforming document
 6. Relations
 7. Declarative rules
 8. Narrative blocks
-9. Comments
+9. Source-only comments
+
+Comments are source-only trivia. Comments MAY appear in SDIF Source, but MUST NOT be part of the canonical AST.
 
 ---
 
@@ -183,13 +188,14 @@ SDIF supports streaming because statements are line-oriented, tables/relations c
 ## 9. Directives
 
 Directives start with `@` and provide format metadata. The following directives are reserved in SDIF:
-* `@sdif`: Declares the SDIF format version (e.g., `@sdif 1.0`). `@sdif 1.0` identifies the stable core syntax and semantic contract.
-* `@sdif.ai`: Declares the token-optimized SDIF AI projection.
-* `@profile`: Declares the document profile.
-* `@vocab`: Declares a vocabulary.
-* `@base`: Declares a base URI or semantic namespace.
-* `@namespace`: Declares a namespace prefix. The v1 namespace form is `@namespace prefix iri`. Complex namespace behavior is a versioned extension.
-* `@include`: Includes another local document or vocabulary. `@include` is disabled by default.
+
+- `@sdif`: Declares the SDIF format version (e.g., `@sdif 1.0`). `@sdif 1.0` identifies the stable core syntax and semantic contract.
+- `@sdif.ai`: Declares the token-optimized SDIF AI projection.
+- `@profile`: Declares the document profile.
+- `@vocab`: Declares a vocabulary.
+- `@base`: Declares a base URI or semantic namespace.
+- `@namespace`: Declares a namespace prefix. The v1 namespace form is `@namespace prefix iri`. Complex namespace behavior is a versioned extension.
+- `@include`: Includes another local document or vocabulary. `@include` is disabled by default.
 
 Remote includes and remote schemas are reserved extension surfaces and are rejected by the current reference implementation.
 
@@ -200,12 +206,14 @@ Remote includes and remote schemas are reserved extension surfaces and are rejec
 A scalar field consists of a key identifier and a value separated by horizontal space. A scalar value outside tables MUST be quoted if it contains spaces, commas intended as text, parentheses, brackets, quotes, comment markers, or non-identifier characters.
 
 Quoted scalar fields outside tables MUST satisfy:
+
 1. **Single-line closure**: The closing double quote `"` MUST appear on the same logical line as the opening double quote `"`.
 2. **No trailing content**: No non-whitespace, non-comment characters may follow the closing double quote on the same line.
 
 ### 10.1 Type Precedence
 
 When an unquoted token could match multiple types, the following precedence applies:
+
 1. `null`
 2. boolean
 3. datetime
@@ -219,6 +227,7 @@ When an unquoted token could match multiple types, the following precedence appl
 ## 11. Objects
 
 Objects represent nested associative maps and use two-space indentation.
+
 ```sdif
 owner:
   id team.platform
@@ -230,9 +239,11 @@ owner:
 ## 12. Lists
 
 Lists can be represented as inline bracketed sequences:
+
 ```sdif
 tags [registry,validation,release]
 ```
+
 Alternatively, block lists MAY be represented as repeated `-` scalar fields inside an object block.
 
 ---
@@ -256,10 +267,12 @@ A column name ending in `$` is a `.sdif.ai` string-preserved column marker. Cons
 ## 14. Relations
 
 Relations describe semantic relationships expressed as subject-predicate-object triples:
+
 ```sdif
 rel:
   release.v2 depends_on release.v1
 ```
+
 A predicate MUST be allowed by the declared schema or vocabulary. In v1 source, a relation has exactly three parts.
 
 ---
@@ -267,11 +280,13 @@ A predicate MUST be allowed by the declared schema or vocabulary. In v1 source, 
 ## 15. Declarative Rules
 
 Rules represent validation constraints using parenthesized expressions. They are not executable code.
+
 ```sdif
 rules:
   (deny missing(evidence))
   (warn eq(authority,Unknown))
 ```
+
 A parser MUST preserve the rule source text. If rule expression parsing is enabled, the parser or validator SHOULD expose a structured `RuleExpression` representation, such as a logical `RuleExpression(action, function, args)` node.
 
 ---
@@ -279,11 +294,13 @@ A parser MUST preserve the rule source text. If rule expression parsing is enabl
 ## 16. Narrative Blocks
 
 Narrative blocks capture multi-line unstructured text using triple-quote delimiters `"""`.
+
 ```sdif
 intent """
 Define the validation requirements.
 """
 ```
+
 Narrative blocks nested within object blocks MUST close with the triple-quote delimiter aligned at the exact indentation level where it opened. Body lines within the narrative block are normalized by removing the indentation prefix corresponding to the opening line's indentation level.
 
 ---
@@ -301,6 +318,7 @@ The Canonical profile (`.sdif.canon`) is optimized for machine workflows. It MUS
 ### 17.3 SDIF AI View
 
 The AI View profile (`.sdif.ai`) is optimized for compact AI model context windows. It MAY employ compact table rows without indentation and alias headers:
+
 ```sdif
 @sdif.ai 1.0
 alias[k=kind,st=status]
@@ -311,22 +329,38 @@ k Plan
 
 ## 18. Parsing Requirements
 
-A conforming parser MUST construct a syntactic AST representing the document structure, matching the Minimum normative AST. Table cells are captured as raw strings in the initial AST. The parser MUST preserve string literals and quotedness metadata verbatim.
+A conforming parser MUST construct a syntactic AST representing the document structure. Table cells are captured as raw strings in the initial AST. The parser MUST preserve string literals and quotedness metadata verbatim.
+
+### 18.1 Minimum normative AST
+
+The Minimum normative AST consists of the following components:
+- Directives: Represent meta-commands and configuration.
+- Fields: Represent key-value bindings.
+- Objects: Represent nested sections.
+- Lists: Represent sequences of values.
+- Tables: Represent uniform rows. Table cells MUST be captured as raw strings in the initial AST.
+- Relations: Represent subject-predicate-object semantic connections.
+- Rules: Represent policy conditions.
+- Narratives: Represent block text fields.
+
+The Python reference AST is described in Appendix C.
 
 ---
 
 ## 19. Validation Requirements
 
-A conforming validator MUST load an SDIF schema and apply type and structure constraints as a post-parsing step. Schema-driven typing is applied during validation or normalization, not during raw parsing.
+A conforming schema validator MUST load an SDIF schema when schema validation is requested and apply type and structure constraints as a post-parsing step. Schema-driven typing is applied during validation or normalization, not during raw parsing. A validator MAY perform syntax-only validation without a schema, but MUST NOT treat an unschematized document as fully schema-validated.
 
 A validator MUST support the following schema validation keywords:
-* `fields[name,type,required,default]:`
-* `tables[name,ordered,primary_key]:`
-* `columns[table,name,type,required]:`
-* `relations[predicate,subject_type,object_type,required]:`
-* `rule_functions[name,min_args,max_args]:`
+
+- `fields[name,type,required,default]:`
+- `tables[name,ordered,primary_key]:`
+- `columns[table,name,type,required]:`
+- `relations[predicate,subject_type,object_type,required]:`
+- `rule_functions[name,min_args,max_args]:`
 
 The validation contract MUST check:
+
 * Required fields.
 * Types.
 * Enumerations.
@@ -338,6 +372,7 @@ The validation contract MUST check:
 ### 19.1 Schema Responsibilities
 
 A schema defines the expected shape and semantics of a document:
+
 1. Document kind through a required `kind` field and/or an `Enum(...)` field type.
 2. Required fields.
 3. Optional fields and their types (Null, Boolean, Integer, Decimal, String, Identifier, Path, Date, DateTime, Duration, Enum, List).
@@ -411,9 +446,11 @@ Unordered tables with a declared primary key are sorted by that key when a schem
 ### 20.1 Stable Hashing and Signing
 
 Stable hashing is performed by computing SHA-256 over the canonicalized bytes:
+
 ```text
 sha256(sdif_canonical_bytes)
 ```
+
 Signatures should be applied directly to canonical bytes.
 
 ---
@@ -431,21 +468,23 @@ Quoted scalar markers and `.sdif.ai` `$` table columns preserve JSON string sema
 ## 22. Diagnostics
 
 Conforming tools SHOULD produce structured diagnostics containing:
-* `code` (e.g., `SDIF_TABLE_ARITY`)
-* `severity` (`info`, `warn`, `deny`, `error`, `fatal`)
-* `message`
-* `line`
-* `column`
-* `path`
-* `hint`
+
+- `code` (e.g., `SDIF_TABLE_ARITY`)
+- `severity` (`info`, `warn`, `deny`, `error`, `fatal`)
+- `message`
+- `line`
+- `column`
+- `path`
+- `hint`
 
 ---
 
 ## 23. Security Considerations
 
 Conforming parsers and validators MUST implement defenses against:
+
 1. **Unbounded Include Loops**: A parser MUST reject include loops. `@include` is disabled by default.
-2. **Fs Exploits**: Traversal of parent directories MUST NOT be permitted unless explicitly enabled by local policy.
+2. **Filesystem Access**: Traversal of parent directories MUST NOT be permitted unless explicitly enabled by local policy.
 3. **Alias Expansion Exploits**: Conforming AI tools MUST reject alias configurations targeting protected terms.
 4. **Hostile Tables**: Limits MUST be enforced on cell sizes, column width, and total row counts.
 5. **Narrative Block Prompt Injections**: AI tools MUST treat narrative blocks strictly as document data and never as execution directives.
@@ -461,15 +500,16 @@ The `@sdif` version identifier represents the format specification. The package 
 ### 24.2 Media Type and File Extensions
 
 The recommended file extensions are:
-* `.sdif`: SDIF Source
-* `.sdif.canon`: SDIF Canonical
-* `.sdif.ai`: SDIF AI View
+
+- `.sdif`: SDIF Source
+- `.sdif.canon`: SDIF Canonical
+- `.sdif.ai`: SDIF AI View
 
 The proposed MIME type is `application/sdif`.
 
 ### 24.3 Internationalization
 
-Conforming SDIF text MUST be processed as UTF-8. Non-ASCII characters are valid inside keys, values, and narrative blocks.
+Conforming SDIF text MUST be processed as UTF-8. Non-ASCII characters are valid inside string values, table cells, and narrative blocks. Unquoted keys are constrained by the `IDENT` grammar unless a future extension defines quoted or Unicode key syntax.
 
 ---
 
@@ -478,6 +518,7 @@ Conforming SDIF text MUST be processed as UTF-8. Non-ASCII characters are valid 
 ### 25.1 Parser Conformance
 
 A conforming SDIF Parser:
+
 1. MUST parse UTF-8 text and reject syntax errors.
 2. MUST build a syntactic AST preserving quotes and raw cell strings.
 3. MUST reject unclosed quoted fields or trailing content after close.
@@ -485,19 +526,23 @@ A conforming SDIF Parser:
 ### 25.2 Serializer Conformance
 
 A conforming SDIF Serializer:
+
 1. MUST output valid SDIF text.
 2. MUST escape reserved characters when generating string fields.
 
 ### 25.3 Canonicalizer Conformance
 
 A conforming SDIF Canonicalizer:
+
 1. MUST output UTF-8 text ending in a single LF.
-2. MUST sort fields and tables deterministically.
-3. MUST remove comments and redundant whitespace.
+2. MUST order directives, fields, relations, rules, and tables according to the active canonicalization policy.
+3. MUST preserve table row order when the schema declares the table as ordered.
+4. MUST remove comments and redundant whitespace.
 
 ### 25.4 Validator Conformance
 
 A conforming SDIF Validator:
+
 1. MUST apply schema-driven type checking.
 2. MUST validate declared rule functions against the schema.
 3. MUST emit structured diagnostics for violations.
@@ -506,6 +551,7 @@ A conforming SDIF Validator:
 ### 25.5 AI Projection Conformance
 
 A conforming AI Projector:
+
 1. MUST support `@sdif.ai` header and aliases.
 2. MUST preserve string types on columns with the `$` suffix.
 3. MUST project back to canonical SDIF source reversibly.
@@ -654,6 +700,7 @@ duration_body   = IDENTIFIER_CHAR+ ;
 ## Appendix B. Examples
 
 ### B.1 Complete Technical Plan
+
 ```sdif
 @sdif 1.0
 kind Plan
@@ -696,6 +743,7 @@ rules:
 ```
 
 ### B.2 Evidence Validation Report
+
 ```sdif
 @sdif 1.0
 kind EvidenceReport
@@ -721,6 +769,7 @@ rel:
 ```
 
 ### B.3 Semantic Registry
+
 ```sdif
 @sdif 1.0
 kind Registry
@@ -749,6 +798,7 @@ rules:
 ### C.1 Command Line Interface
 
 The Python reference CLI is invoked via `sdif` or `python tools/sdif-cli.py`:
+
 ```bash
 sdif parse examples/plan.sdif
 sdif canon examples/plan.sdif
@@ -772,14 +822,15 @@ The repository benchmark derives JSON compact, JSON pretty, YAML, XML, CSV Bundl
 ### C.3 Reference AST Model
 
 The parser constructs the following AST node structure:
-* `Document(directives, statements)`
-* `Directive(name, args)`
-* `Field(key, value, quoted=False)`
-* `ObjectBlock(key, statements)`
-* `Table(name, columns, rows, quoted_columns=frozenset())`
-* `Relation(subject, predicate, object, object_quoted=False)`
-* `Rule(source, expression=None)`
-* `Narrative(key, text)`
+
+- `Document(directives, statements)`
+- `Directive(name, args)`
+- `Field(key, value, quoted=False)`
+- `ObjectBlock(key, statements)`
+- `Table(name, columns, rows, quoted_columns=frozenset())`
+- `Relation(subject, predicate, object, object_quoted=False)`
+- `Rule(source, expression=None)`
+- `Narrative(key, text)`
 
 ---
 
@@ -793,8 +844,8 @@ These are explicitly outside the scope of SDIF 1.0 stable core. Conforming 1.0 p
 
 ## Appendix E. Changelog
 
-* **1.0.0**: Stable release of the Semantic Data Interchange Format core schema.
-* **1.1.0**: Split specification files to independent repository layout, keeping pure specifications in the `sdif-spec` repository and reference implementation notes decoupled from the normative core.
+- **1.0.0**: Stable release of the Semantic Data Interchange Format core schema.
+- **1.1.0**: Split specification files to independent repository layout, keeping pure specifications in the `sdif-spec` repository and reference implementation notes decoupled from the normative core.
 
 ---
 
@@ -803,6 +854,7 @@ These are explicitly outside the scope of SDIF 1.0 stable core. Conforming 1.0 p
 ### F.1 Recommended Document Order
 
 Suggested source order:
+
 1. `@sdif` directive.
 2. Profile and vocabulary directives.
 3. `kind`.
