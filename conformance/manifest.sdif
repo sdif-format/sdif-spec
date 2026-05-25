@@ -13,15 +13,27 @@ cases[id,profile,source,canonical,tree,sha256]:
 invalid_cases[id,source,expected_code]:
   alias-collision	conformance/invalid/alias_collision.sdif	SDIF_POLICY_ALIAS_COLLISION
   alias-reserved	conformance/invalid/alias_reserved.sdif	SDIF_POLICY_ALIAS_RESERVED
+  directive-empty	conformance/invalid/directive_empty.sdif	SDIF_DIRECTIVE
   directive-unknown	conformance/invalid/directive_unknown.sdif	SDIF_DIRECTIVE_UNKNOWN
+  field-no-value	conformance/invalid/field_no_value.sdif	SDIF_FIELD
+  indent-tab	conformance/invalid/indent_tab.sdif	SDIF_INDENT_TAB
+  indent-unexpected	conformance/invalid/indent_unexpected.sdif	SDIF_INDENT
   narrative-bad-close	conformance/invalid/nested_narrative_bad_close.sdif	SDIF_NARRATIVE_CLOSE_ALIGN
+  narrative-unclosed	conformance/invalid/narrative_unclosed.sdif	SDIF_NARRATIVE_UNCLOSED
+  object-directive	conformance/invalid/object_directive.sdif	SDIF_OBJECT_DIRECTIVE
   policy-nesting-depth	conformance/invalid/policy_nesting_depth.sdif	SDIF_POLICY_NESTING_DEPTH
+  relation-arity	conformance/invalid/relation_arity.sdif	SDIF_REL_ARITY
+  relation-quote	conformance/invalid/relation_quote.sdif	SDIF_REL_QUOTE
+  rule-expr	conformance/invalid/rule_expr.sdif	SDIF_RULE_EXPR
   source-grouped-relation	conformance/invalid/source_grouped_relation.sdif	SDIF_AI_REL_SUBJECT
+  table-header-empty	conformance/invalid/table_header_empty.sdif	SDIF_TABLE_HEADER
   table-row-comment	conformance/invalid/table_row_comment.sdif	SDIF_TABLE_ROW_COMMENT
   table-too-few-cells	conformance/invalid/table_too_few_cells.sdif	SDIF_TABLE_ARITY
   table-too-many-cells	conformance/invalid/table_too_many_cells.sdif	SDIF_TABLE_ARITY
   version-bad-token	conformance/invalid/version_bad_token.sdif	SDIF_VERSION_UNSUPPORTED
+  version-conflict	conformance/invalid/version_conflict.sdif	SDIF_VERSION_CONFLICT
   version-missing	conformance/invalid/version_missing.sdif	SDIF_VERSION_MISSING
+  version-syntax	conformance/invalid/version_syntax.sdif	SDIF_VERSION_SYNTAX
   version-unsupported	conformance/invalid/version_unsupported.sdif	SDIF_VERSION_UNSUPPORTED
   scalar-unclosed-quote	conformance/invalid/scalar_unclosed_quote.sdif	SDIF_STRING_UNCLOSED
   scalar-trailing-after-quote	conformance/invalid/scalar_trailing_after_quote.sdif	SDIF_STRING_TRAILING

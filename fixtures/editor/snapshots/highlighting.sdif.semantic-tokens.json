@@ -1,0 +1,200 @@
+[
+  {
+    "character": 0,
+    "length": 1,
+    "line": 0,
+    "token_modifiers": [],
+    "token_type": "operator"
+  },
+  {
+    "character": 1,
+    "length": 4,
+    "line": 0,
+    "token_modifiers": [],
+    "token_type": "keyword"
+  },
+  {
+    "character": 6,
+    "length": 3,
+    "line": 0,
+    "token_modifiers": [],
+    "token_type": "number"
+  },
+  {
+    "character": 0,
+    "length": 19,
+    "line": 2,
+    "token_modifiers": [],
+    "token_type": "comment"
+  },
+  {
+    "character": 0,
+    "length": 4,
+    "line": 3,
+    "token_modifiers": [],
+    "token_type": "keyword"
+  },
+  {
+    "character": 5,
+    "length": 7,
+    "line": 3,
+    "token_modifiers": [],
+    "token_type": "string"
+  },
+  {
+    "character": 0,
+    "length": 11,
+    "line": 4,
+    "token_modifiers": [],
+    "token_type": "keyword"
+  },
+  {
+    "character": 12,
+    "length": 47,
+    "line": 4,
+    "token_modifiers": [],
+    "token_type": "string"
+  },
+  {
+    "character": 0,
+    "length": 44,
+    "line": 6,
+    "token_modifiers": [],
+    "token_type": "comment"
+  },
+  {
+    "character": 0,
+    "length": 5,
+    "line": 7,
+    "token_modifiers": [
+      "declaration"
+    ],
+    "token_type": "type"
+  },
+  {
+    "character": 5,
+    "length": 1,
+    "line": 7,
+    "token_modifiers": [],
+    "token_type": "operator"
+  },
+  {
+    "character": 6,
+    "length": 4,
+    "line": 7,
+    "token_modifiers": [
+      "sdifColumn0"
+    ],
+    "token_type": "property"
+  },
+  {
+    "character": 10,
+    "length": 1,
+    "line": 7,
+    "token_modifiers": [],
+    "token_type": "operator"
+  },
+  {
+    "character": 12,
+    "length": 5,
+    "line": 7,
+    "token_modifiers": [
+      "sdifColumn1"
+    ],
+    "token_type": "property"
+  },
+  {
+    "character": 17,
+    "length": 1,
+    "line": 7,
+    "token_modifiers": [],
+    "token_type": "operator"
+  },
+  {
+    "character": 18,
+    "length": 1,
+    "line": 7,
+    "token_modifiers": [],
+    "token_type": "operator"
+  },
+  {
+    "character": 19,
+    "length": 1,
+    "line": 7,
+    "token_modifiers": [],
+    "token_type": "operator"
+  },
+  {
+    "character": 2,
+    "length": 7,
+    "line": 8,
+    "token_modifiers": [
+      "sdifColumn0"
+    ],
+    "token_type": "variable"
+  },
+  {
+    "character": 10,
+    "length": 7,
+    "line": 8,
+    "token_modifiers": [
+      "sdifColumn1"
+    ],
+    "token_type": "string"
+  },
+  {
+    "character": 2,
+    "length": 8,
+    "line": 9,
+    "token_modifiers": [
+      "sdifColumn0"
+    ],
+    "token_type": "variable"
+  },
+  {
+    "character": 11,
+    "length": 6,
+    "line": 9,
+    "token_modifiers": [
+      "sdifColumn1"
+    ],
+    "token_type": "string"
+  },
+  {
+    "character": 0,
+    "length": 27,
+    "line": 11,
+    "token_modifiers": [],
+    "token_type": "comment"
+  },
+  {
+    "character": 0,
+    "length": 5,
+    "line": 12,
+    "token_modifiers": [
+      "declaration"
+    ],
+    "token_type": "type"
+  },
+  {
+    "character": 5,
+    "length": 3,
+    "line": 12,
+    "token_modifiers": [],
+    "token_type": "operator"
+  },
+  {
+    "character": 0,
+    "length": 26,
+    "line": 13,
+    "token_modifiers": [],
+    "token_type": "string"
+  },
+  {
+    "character": 0,
+    "length": 24,
+    "line": 14,
+    "token_modifiers": [],
+    "token_type": "string"
+  }
+]
