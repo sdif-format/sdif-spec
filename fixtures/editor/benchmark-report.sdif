@@ -1,0 +1,18 @@
+@sdif 1.0
+kind BenchmarkReport
+version "1.0"
+generatedAt 2026-05-24T20:35:02Z
+runDirectory results/token_efficiency
+reportUrl "https://example.com/reports/token-efficiency"
+envFileLoaded true
+documentsCompared 24
+availableTokenizers "Estimate, TokenX, tiktoken"
+tokenizers[name,status,type,notes]:
+  Estimate	available	heuristic	"Deterministic fallback: 4 UTF-8 bytes per token."
+  TokenX	available	heuristic	"Resolved through Node.js, local/global npm, or npx fallback."
+  tiktoken	available	model	"Encoding: cl100k_base."
+  Llama3	disabled	model	"Disabled through SDIF_BENCHMARK_LLAMA=0."
+ranking[format,avgRank,medianRatio,bestRatio,worstRatio,coverage]:
+  SDIF AI	1.54	57.88	26.28	86.09	72
+  SDIF	2.05	60.00	26.27	83.44	72
+  JSON Compact	5.65	100.0	100.0	100.0	72
