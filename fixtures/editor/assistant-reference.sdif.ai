@@ -1,0 +1,10 @@
+@sdif.ai 1.0
+sourceHash sha256:0123456789abcdef
+lossless true
+alias[k=kind,st=status,t=title]
+k Plan
+tasks[id,t,st]:
+T1	"Design schema"	done
+T2	"Write parser"	blocked
+rel[tasks#1]:
+  blocks tasks#2

@@ -1,0 +1,29 @@
+@sdif 1.0
+kind AssistantReference
+title "Assistant-facing SDIF reference fixture"
+
+# Plan document
+milestones[id,name,status,target]:
+  1	Alpha	done	2025-Q1
+  2	Beta	blocked	2025-Q2
+
+rel:
+  milestones#1 precedes milestones#2
+
+# Schema document
+packagesSchema[field,type,required]:
+  id	integer	true
+  name	string	true
+  stable	boolean	false
+
+benchmarkSummary[metric,value,notes]:
+  corpusDocuments	24	"Small benchmark corpus; mention limitations."
+  tokenizers	3	"Estimate, TokenX, and tiktoken."
+
+rules:
+  (warn eq(status,blocked))
+
+notes"""
+This fixture is derived from llms-full.txt examples, corrected to SDIF v1.0 syntax.
+HTAB is used only between table cells; indentation uses spaces.
+"""
