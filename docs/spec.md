@@ -11,7 +11,7 @@
 
 - [1. Abstract](#1-abstract)
 - [2. Status of This Document](#2-status-of-this-document)
-  - [2.1 v1 stable contract](#21-v1-stable-contract)
+  - [2.1 Stable core contract](#21-stable-core-contract)
 - [3. Terminology and Conventions](#3-terminology-and-conventions)
   - [3.1 Requirement Keywords](#31-requirement-keywords)
 - [4. Overview](#4-overview)
@@ -86,11 +86,11 @@ This document defines the technical specification for SDIF, a compact semantic d
 **Encoding:** UTF-8
 **Design mode:** schema-first, semantic-first, token-aware, canonicalization-ready
 
-### 2.1 v1 stable contract
+### 2.1 Stable core contract
 
-The `1.0.0` specification document records the stable core specification. `@sdif 1.0` identifies the stable core syntax and semantic contract. The package version may advance independently from the document format version.
+This specification document records the stable core specification. The format directive identifies the stable core syntax and semantic contract. The package version may advance independently from the format version.
 
-Core v1 behavior includes parsing, the reference AST shape, schema-driven validation, canonical-syntax-v1, safe default policies, local includes behind explicit policy, and `.sdif.ai` reversibility to canonical source. Reserved extension surfaces include remote includes, remote schemas, complex namespaces, deep graph validation, digital signatures, advanced type unions, semantic numeric/date normalization, and non-declarative rule execution.
+Stable core behavior includes parsing, the reference AST shape, schema-driven validation, canonical syntax, safe default policies, local includes behind explicit policy, and `.sdif.ai` reversibility to canonical source. Reserved extension surfaces include remote includes, remote schemas, complex namespaces, deep graph validation, digital signatures, advanced type unions, semantic numeric/date normalization, and non-declarative rule execution.
 
 ---
 
@@ -189,12 +189,12 @@ SDIF supports streaming because statements are line-oriented, tables/relations c
 
 Directives start with `@` and provide format metadata. The following directives are reserved in SDIF:
 
-- `@sdif`: Declares the SDIF format version (e.g., `@sdif 1.0`). `@sdif 1.0` identifies the stable core syntax and semantic contract.
+- `@sdif`: Declares the SDIF format version (e.g., `@sdif 1.0`). This directive identifies the stable core syntax and semantic contract.
 - `@sdif.ai`: Declares the token-optimized SDIF AI projection.
 - `@profile`: Declares the document profile.
 - `@vocab`: Declares a vocabulary.
 - `@base`: Declares a base URI or semantic namespace.
-- `@namespace`: Declares a namespace prefix. The v1 namespace form is `@namespace prefix iri`. Complex namespace behavior is a versioned extension.
+- `@namespace`: Declares a namespace prefix. The core namespace form is `@namespace prefix iri`. Complex namespace behavior is reserved for future extensions.
 - `@include`: Includes another local document or vocabulary. `@include` is disabled by default.
 
 Remote includes and remote schemas are reserved extension surfaces and are rejected by the current reference implementation.
@@ -258,7 +258,7 @@ milestones[id,status,gate]:
   R2	pending	verify
 ```
 
-For the v1.0 stabilization track, strict mode prohibits inline comments inside table rows.
+Under the stable core configuration, strict mode prohibits inline comments inside table rows.
 
 A column name ending in `$` is a `.sdif.ai` string-preserved column marker. Consumers MUST strip the suffix from the semantic column name and parse all cells in that column as strings. The `$` suffix is a decoding hint only and is not part of the semantic column name.
 
@@ -270,10 +270,10 @@ Relations describe semantic relationships expressed as subject-predicate-object 
 
 ```sdif
 rel:
-  release.v2 depends_on release.v1
+  release.b depends_on release.a
 ```
 
-A predicate MUST be allowed by the declared schema or vocabulary. In v1 source, a relation has exactly three parts.
+A predicate MUST be allowed by the declared schema or vocabulary. In standard core documents, a relation has exactly three parts.
 
 ---
 
@@ -385,8 +385,8 @@ A schema defines the expected shape and semantics of a document:
 ```sdif
 @sdif 1.0
 kind Schema
-id example.plan.v1
-schema sdif.schema.v1
+id example.plan.core
+schema sdif.schema.core
 authority Canonical
 lifecycle Active
 
@@ -705,8 +705,8 @@ duration_body   = IDENTIFIER_CHAR+ ;
 ```sdif
 @sdif 1.0
 kind Plan
-id release.v2.validation_plan
-schema example.plan.v1
+id release.b.validation_plan
+schema example.plan.core
 authority Canonical
 lifecycle Active
 
@@ -734,7 +734,7 @@ milestones[id,status,gate,evidence]:
 rel:
   R3 depends_on R2
   R4 depends_on R3
-  release.v2.validation_plan validated_by validation.report.v2
+  release.b.validation_plan validated_by validation.report.b
 
 rules:
   (deny missing(evidence))
@@ -748,12 +748,12 @@ rules:
 ```sdif
 @sdif 1.0
 kind EvidenceReport
-id validation.report.v2
-schema example.evidence_report.v1
+id validation.report.b
+schema example.evidence_report.core
 authority Derived
 lifecycle Active
 
-subject release.v2.validation_plan
+subject release.b.validation_plan
 verified_at 2026-05-20T18:15:00Z
 verifier validator.core
 result pass
@@ -766,7 +766,7 @@ artifacts[id,path,sha256]:
   summary	reports/validation-summary.md	sha256:0000000000000000000000000000000000000000000000000000000000000000
 
 rel:
-  validation.report.v2 validates release.v2.validation_plan
+  validation.report.b validates release.b.validation_plan
 ```
 
 ### B.3 Semantic Registry
@@ -775,7 +775,7 @@ rel:
 @sdif 1.0
 kind Registry
 id example.registry
-schema example.semantic_registry.v1
+schema example.semantic_registry.core
 authority Canonical
 lifecycle Active
 
@@ -839,7 +839,7 @@ The parser constructs the following AST node structure:
 
 Versioned or not-yet-implemented extensions include remote includes, remote schemas, complex namespaces, deep graph validation, digital signatures, advanced type unions, semantic numeric/date normalization, and non-declarative rule execution.
 
-These are explicitly outside the scope of SDIF 1.0 stable core. Conforming 1.0 parsers and validators MUST reject these extensions unless explicit profile flags are set.
+These are explicitly outside the scope of the stable core specification. Conforming core parsers and validators MUST reject these extensions unless explicit profile flags are set.
 
 ---
 
