@@ -5,5 +5,5 @@ alias[k=kind, st=status]
 
 # Grouped relation header (keyword, variable) and row (string)
 rel[item-1]:
-	depends_on	item-2
-	st	"active"
+  depends_on item-2
+  st "active"

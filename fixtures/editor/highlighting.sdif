@@ -6,8 +6,8 @@ description "Example dataset for highlighting verification"
 
 # Table Header and Columns (Type / Property)
 items[name, value$]:
-	"first"	"alpha"
-	"second"	"beta"
+  "first"	"alpha"
+  "second"	"beta"
 
 # Narrative (Type / String)
 notes"""
