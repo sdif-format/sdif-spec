@@ -68,6 +68,8 @@
 
 - `docs/` — Official format specifications and analysis:
   - [`spec.md`](docs/spec.md) — Stable core format specification (stable `@sdif 1.0` and `@sdif.ai 1.0` contract).
+  - [`reference-python.md`](docs/reference-python.md) — Informative notes on the Python reference implementation (non-normative).
+  - [`reference-rust.md`](docs/reference-rust.md) — Informative notes on the Rust parser crate and LSP server (non-normative).
   - [`canonicalization.md`](docs/canonicalization.md) — Canonicalization and semantic stability rules.
   - [`semantic-quality.md`](docs/semantic-quality.md) — Semantic density, quality, and profile guidelines.
   - [`ai-speed-profile.md`](docs/ai-speed-profile.md) — Context window packing details.

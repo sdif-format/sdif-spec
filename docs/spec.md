@@ -10,6 +10,8 @@
 ## Table of Contents
 
 - [1. Abstract](#1-abstract)
+  - [1.1 Motivation](#11-motivation)
+  - [1.2 Design Principles](#12-design-principles)
 - [2. Status of This Document](#2-status-of-this-document)
   - [2.1 Stable core contract](#21-stable-core-contract)
 - [3. Terminology and Conventions](#3-terminology-and-conventions)
@@ -17,6 +19,7 @@
 - [4. Overview](#4-overview)
   - [4.1 Comparison with Other Formats](#41-comparison-with-other-formats)
   - [4.2 AI Compatibility and Agent Interoperability](#42-ai-compatibility-and-agent-interoperability)
+  - [4.3 Document Lifecycle](#43-document-lifecycle)
 - [5. Goals and Non-Goals](#5-goals-and-non-goals)
   - [5.1 Design Goals](#51-design-goals)
   - [5.2 Non-Goals](#52-non-goals)
@@ -70,19 +73,39 @@
 
 This document defines the technical specification for SDIF, a compact semantic data interchange format designed for AI agents and deterministic machine workflows, with human-auditable source files.
 
+### 1.1 Motivation
+
+SDIF exists for workflows where structured data is not merely transported, but inspected, validated, canonicalized, compared, signed, summarized, or placed into AI model context windows.
+
+Existing formats solve important parts of this problem. JSON provides a widely deployed data model and excellent API interoperability. YAML improves human authoring but allows flexibility that can complicate deterministic parsing and canonicalization. CSV is compact for uniform tabular data but does not express hierarchy, relations, validation intent, or narrative context. RDF-style formats model semantic relationships but are often too specialized for mixed operational documents. Token-oriented formats reduce repetition for model input but generally do not define a full validation, canonicalization, and evidence-oriented document lifecycle.
+
+SDIF is designed to occupy the space between these formats: compact enough for AI and machine workflows, explicit enough for validation, deterministic enough for hashing and signing, and readable enough for human audit.
+
+### 1.2 Design Principles
+
+SDIF is guided by the following principles:
+
+1. **Semantic density over syntactic convenience**: repeated structure should be expressed once when doing so preserves meaning.
+2. **Determinism over flexibility**: syntax should avoid ambiguous constructs that make canonicalization or cross-implementation behavior difficult.
+3. **Schema-first interpretation**: raw parsing captures structure, while schema validation assigns stronger semantic meaning.
+4. **Human auditability**: source documents should remain readable and reviewable without requiring specialized binary tooling.
+5. **AI compatibility without instruction confusion**: narrative text and document content are data, not runtime instructions.
+6. **Reversible optimization**: AI-oriented projections may reduce tokens, but must remain reversible to canonical, semantically equivalent SDIF.
+
 ---
 
 ## 2. Status of This Document
 
+This document is the authoritative technical specification for SDIF 1.0. The main body of this document and Appendix A are normative unless explicitly marked otherwise. Appendices B, C, D, E, and F are informative.
+
 **Format version:** 1.0
-**Specification document version:** 1.1.0
-**Python package version:** 1.1.0
+**Specification document version:** 1.2.0
 **Name:** Semantic Data Interchange Format
 **Short name:** SDIF
 **Recommended source extension:** `.sdif`
 **Recommended canonical extension:** `.sdif.canon`
 **Recommended AI-optimized extension:** `.sdif.ai`
-**Proposed MIME type:** `application/sdif`
+**Proposed media type:** `application/sdif`
 **Encoding:** UTF-8
 **Design mode:** schema-first, semantic-first, token-aware, canonicalization-ready
 
@@ -124,6 +147,16 @@ SDIF helps AI models by reducing repetition, making semantics explicit, separati
 AI agents processing SDIF MUST distinguish document content, external instructions, and runtime policy. AI tools SHOULD use clear aliases and avoid excessively wide tables.
 
 ---
+
+### 4.3 Document Lifecycle
+
+An SDIF document may move through several representations during its lifecycle:
+
+1. **SDIF Source**: A human or agent authors an SDIF Source document. The source document may contain comments, flexible ordering, and narrative blocks intended for review.
+2. **Syntactic AST**: A parser reads the Source document and constructs a syntax-preserving AST without applying schema-driven value typing.
+3. **Schema-Validated Document**: A validator checks the AST against schema-defined types, enums, required fields, allowed tables, relation predicates, and declared rule functions. Declarative rule evaluation may be applied by validators that implement the rule evaluation profile.
+4. **SDIF Canonical**: The source document is canonicalized into a deterministically ordered and stripped representation for stable hashing and signing (removing comments, blank lines, and styling variations).
+5. **SDIF AI View**: For AI context usage, the document is projected into a token-optimized representation using aliases and compact table rows, while preserving reversibility to canonical, semantically equivalent SDIF.
 
 ## 5. Goals and Non-Goals
 
@@ -197,7 +230,7 @@ Directives start with `@` and provide format metadata. The following directives 
 - `@namespace`: Declares a namespace prefix. The core namespace form is `@namespace prefix iri`. Complex namespace behavior is reserved for future extensions.
 - `@include`: Includes another local document or vocabulary. `@include` is disabled by default.
 
-Remote includes and remote schemas are reserved extension surfaces and are rejected by the current reference implementation.
+Remote includes and remote schemas are reserved extension surfaces. Conforming core processors MUST reject them unless an explicit extension profile enables them.
 
 ---
 
@@ -205,10 +238,27 @@ Remote includes and remote schemas are reserved extension surfaces and are rejec
 
 A scalar field consists of a key identifier and a value separated by horizontal space. A scalar value outside tables MUST be quoted if it contains spaces, commas intended as text, parentheses, brackets, quotes, comment markers, or non-identifier characters.
 
+For example, valid unquoted and quoted scalar fields:
+
+```sdif
+status open
+priority P0
+title "Release validation plan"
+created_at 2026-05-20T18:00:00Z
+```
+
+Here, `status` and `priority` contain unquoted identifier values. `title` is quoted because it contains spaces. The timestamp `created_at` is parsed according to the datetime precedence rules.
+
 Quoted scalar fields outside tables MUST satisfy:
 
 1. **Single-line closure**: The closing double quote `"` MUST appear on the same logical line as the opening double quote `"`.
 2. **No trailing content**: No non-whitespace, non-comment characters may follow the closing double quote on the same line.
+
+The following field is invalid in SDIF because trailing non-whitespace, non-comment content follows the closing quote:
+
+```sdif
+title "Release validation plan" extra_content
+```
 
 ### 10.1 Type Precedence
 
@@ -244,13 +294,11 @@ Lists can be represented as inline bracketed sequences:
 tags [registry,validation,release]
 ```
 
-Alternatively, block lists MAY be represented as repeated `-` scalar fields inside an object block.
-
 ---
 
 ## 13. Tables
 
-Tables represent uniform arrays of objects. A table block MUST start with a table header naming the table and declaring its columns in square brackets, followed by table rows. Table columns are separated by the literal horizontal tab character (`HTAB`, U+0009), not by spaces or commas.
+Tables represent uniform arrays of objects. A table block MUST start with a table header naming the table and declaring its columns in square brackets, followed by table rows. Table columns are separated by the literal horizontal tab character (`HTAB`, U+0009), not by spaces or commas. Note that in the example below, the spacing between columns consists of literal `HTAB` separators:
 
 ```sdif
 milestones[id,status,gate]:
@@ -259,6 +307,8 @@ milestones[id,status,gate]:
 ```
 
 Under the stable core configuration, strict mode prohibits inline comments inside table rows.
+
+In SDIF Source and Canonical profiles, table rows MUST be indented. In SDIF AI View, compact non-indented table rows (ai_table_row) MAY be used after a table header. The `ai_table_block` grammar production is valid only under the SDIF AI View profile. Conforming Source and Canonical processors MUST reject non-indented table rows.
 
 A column name ending in `$` is a `.sdif.ai` string-preserved column marker. Consumers MUST strip the suffix from the semantic column name and parse all cells in that column as strings. The `$` suffix is a decoding hint only and is not part of the semantic column name.
 
@@ -307,6 +357,41 @@ Narrative blocks nested within object blocks MUST close with the triple-quote de
 
 ## 17. Profiles
 
+Profiles define structural constraints for different use cases. For example, the same data represented under the three profiles:
+
+**SDIF Source**:
+
+```sdif
+@sdif 1.0
+# Source may contain comments and formatting
+kind Plan
+id release.v1
+
+status open
+priority P0
+```
+
+**SDIF Canonical**:
+
+```sdif
+@sdif 1.0
+kind Plan
+id release.v1
+priority P0
+status open
+```
+
+**SDIF AI View**:
+
+```sdif
+@sdif.ai 1.0
+alias[k=kind,st=status]
+k Plan
+id release.v1
+priority P0
+st open
+```
+
 ### 17.1 SDIF Source
 
 The Source profile (`.sdif`) is optimized for human and agent authoring. It MAY contain comments, blank lines, narrative blocks, and flexible ordering.
@@ -324,6 +409,12 @@ The AI View profile (`.sdif.ai`) is optimized for compact AI model context windo
 alias[k=kind,st=status]
 k Plan
 ```
+
+A valid `.sdif.ai` document MUST include the `@sdif.ai 1.0` directive.
+
+Headerless AI snippets MAY be used as transport- or prompt-local fragments, but they are not standalone conforming `.sdif.ai` documents.
+
+Alias headers are valid only in the SDIF AI View profile unless an explicit extension profile enables them. Conforming Source and Canonical processors MUST reject alias headers.
 
 ---
 
@@ -344,7 +435,7 @@ The following defines the minimum normative AST for SDIF v1. The minimum abstrac
 - Rules: Represent policy conditions.
 - Narratives: Represent block text fields.
 
-The Python reference AST is described in Appendix C.
+The Python reference AST is described in the informative [reference-python.md](reference-python.md) document. The Rust implementation AST is described in the informative [reference-rust.md](reference-rust.md) document.
 
 ---
 
@@ -460,6 +551,41 @@ Signatures should be applied directly to canonical bytes.
 
 SDIF maps directly to JSON structures. Scalar fields map to key-value properties, objects map to nested JSON objects, tables map to uniform lists of objects, and relations map to an array of triple objects containing `subject`, `predicate`, and `object`.
 
+For example, an SDIF snippet and its equivalent JSON:
+
+**SDIF**:
+
+```sdif
+kind Plan
+id release.v1
+milestones[id,status]:
+  R1	done
+rel:
+  release.v1 validated_by R1
+```
+
+**JSON**:
+
+```json
+{
+  "kind": "Plan",
+  "id": "release.v1",
+  "milestones": [
+    {
+      "id": "R1",
+      "status": "done"
+    }
+  ],
+  "rel": [
+    {
+      "subject": "release.v1",
+      "predicate": "validated_by",
+      "object": "R1"
+    }
+  ]
+}
+```
+
 To represent heterogeneous or nested lists in JSON without expanding the core SDIF source grammar with list-of-block syntax, SDIF uses a reserved repeated `__item` object block convention. A scalar value inside a nested list is wrapped in a field named `__value`.
 
 Quoted scalar markers and `.sdif.ai` `$` table columns preserve JSON string semantics for values that otherwise look like `null`, booleans, numbers, or lists.
@@ -506,7 +632,7 @@ The recommended file extensions are:
 - `.sdif.canon`: SDIF Canonical
 - `.sdif.ai`: SDIF AI View
 
-The proposed MIME type is `application/sdif`.
+The proposed media type is `application/sdif`. The media type is proposed and not yet registered.
 
 ### 24.3 Internationalization
 
@@ -583,11 +709,21 @@ comment_line     = horizontal_space*, comment, newline ;
 comment          = "#", not_newline* ;
 
 newline          = "\n" | "\r\n" ;
-horizontal_space = " " | "\t" ;
+SP               = " " ;
+horizontal_space = SP ;
 spacing          = (blank_line | comment_line)* ;
 
 directive_line  = "@", directive_name, directive_args?, inline_comment?, newline ;
-directive_name  = IDENT ;
+directive_name  = "sdif"
+                | "sdif.ai"
+                | "profile"
+                | "vocab"
+                | "base"
+                | "namespace"
+                | "include"
+                | extension_directive
+                ;
+extension_directive = IDENT, (".", IDENT)* ;
 directive_args  = horizontal_space+, value, (horizontal_space+, value)* ;
 
 field_line      = key, horizontal_space+, value, inline_comment?, newline ;
@@ -608,8 +744,10 @@ statement_body     = field_line
 list            = "[", list_items?, "]" ;
 list_items      = value, (",", value)* ;
 
-table_block     = table_header, table_row+ ;
-table_header    = key, "[", column_list, "]", ":", inline_comment?, newline ;
+table_block        = source_table_block | ai_table_block ;
+source_table_block = table_header, table_row+ ;
+ai_table_block     = table_header, ai_table_row+ ;
+table_header       = key, "[", column_list, "]", ":", inline_comment?, newline ;
 column_list     = column, (",", column)* ;
 column          = IDENT, ["$"] ;
 alias_header    = "alias", "[", alias_entry, (",", alias_entry)*, "]", inline_comment?, newline ;
@@ -625,9 +763,9 @@ relation_block  = "rel", ":", inline_comment?, newline, relation_row+ ;
 relation_row    = INDENT, relation_subject, horizontal_space+, relation_predicate,
                   horizontal_space+, relation_object, inline_comment?, newline ;
 
-relation_subject   = IDENTIFIER_VALUE ;
-relation_predicate = IDENTIFIER_VALUE ;
-relation_object    = IDENTIFIER_VALUE | STRING ;
+relation_subject   = identifier_value ;
+relation_predicate = identifier_value ;
+relation_object    = identifier_value | string ;
 
 rule_block      = "rules", ":", inline_comment?, newline, rule_row+ ;
 rule_row        = INDENT, expression, inline_comment?, newline ;
@@ -847,6 +985,7 @@ These are explicitly outside the scope of the stable core specification. Conform
 
 - **1.0.0**: Stable release of the Semantic Data Interchange Format core schema.
 - **1.1.0**: Split specification files to independent repository layout, keeping pure specifications in the `sdif-spec` repository and reference implementation notes decoupled from the normative core.
+- **1.2.0**: Added explanatory narrative and lifecycle model without changing the SDIF 1.0 core format.
 
 ---
 
