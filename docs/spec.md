@@ -17,7 +17,7 @@
 - [3. Terminology and Conventions](#3-terminology-and-conventions)
   - [3.1 Requirement Keywords](#31-requirement-keywords)
 - [4. Overview](#4-overview)
-  - [4.1 Comparison with Other Formats](#41-comparison-with-other-formats)
+  - [4.1 Relationship to Other Formats](#41-relationship-to-other-formats)
   - [4.2 AI Compatibility and Agent Interoperability](#42-ai-compatibility-and-agent-interoperability)
   - [4.3 Document Lifecycle](#43-document-lifecycle)
   - [4.4 When to Use SDIF](#44-when-to-use-sdif)
@@ -116,7 +116,7 @@ This document is the authoritative technical specification for SDIF 1.0. The mai
 
 This specification document records the stable core specification. The format directive identifies the stable core syntax and semantic contract. `@sdif 1.0` identifies the stable core syntax and semantic contract. The package version may advance independently from the format version.
 
-Stable core behavior includes parsing, the reference AST shape, schema-driven validation, canonical syntax, safe default policies, local includes behind explicit policy, and `.sdif.ai` reversibility to canonical source. Reserved extension surfaces include remote includes, remote schemas, complex namespaces, deep graph validation, digital signatures, advanced type unions, semantic numeric/date normalization, and non-declarative rule execution.
+Stable core behavior includes parsing, the reference AST shape, schema-driven validation, canonical syntax, safe default policies, local includes behind explicit policy, and `.sdif.ai` reversibility to canonical SDIF. Reserved extension surfaces include remote includes, remote schemas, complex namespaces, deep graph validation, digital signatures, advanced type unions, semantic numeric/date normalization, and non-declarative rule execution.
 
 ---
 
@@ -139,6 +139,8 @@ The format is structured around the core principle of maximizing semantic densit
 SDIF is not intended to replace JSON as the default public API format. JSON remains the most interoperable choice for general-purpose data exchange. SDIF instead targets documents where repeated structure, validation metadata, relations, narrative context, and canonicalization requirements appear together.
 
 Compared with YAML, SDIF intentionally provides fewer syntactic forms. This reduces authoring flexibility but improves parser determinism and makes canonical output easier to specify.
+
+Compared with TOML, SDIF supports configuration-like key-value structures, but also adds compact tables, relations, declarative rules, narrative blocks, and canonicalization-oriented profiles for validation and evidence workflows.
 
 Compared with CSV, SDIF keeps the compactness of declaring tabular columns once, but embeds tables inside a richer document model that can also contain metadata, relations, rules, and narrative blocks.
 
@@ -175,7 +177,7 @@ SDIF is recommended for:
 SDIF is not recommended for:
 
 - General-purpose public REST APIs (use JSON instead).
-- Large, multi-gigabyte flat data sets where columnar databases (like Parquet) are required.
+- Large, multi-gigabyte flat data sets where columnar storage formats such as Parquet are required.
 - Storing deeply nested recursive structures that do not naturally map to object blocks and tables.
 
 ---
@@ -703,7 +705,7 @@ A conforming AI Projector:
 
 1. MUST support `@sdif.ai` header and aliases.
 2. MUST preserve string types on columns with the `$` suffix.
-3. MUST project back to canonical SDIF source reversibly.
+3. MUST project back to canonical, semantically equivalent SDIF reversibly.
 
 ---
 
@@ -1018,7 +1020,7 @@ Line-oriented parsing allows processors to stream files and identify structural 
 
 ### F.2 Why tables use HTAB separators
 
-Tabular structures require clear column delimiters. Using spaces as separators is highly fragile because scalar values (like paths or unquoted text fragments) often contain spaces, leading to parsing ambiguity. While comma-separated CSV works for flat files, inline commas in lists and headers make it unsuited as a nested column separator inside structured documents. The horizontal tab (`HTAB`) is a clean, single-byte ASCII character reserved solely for column layout, ensuring zero parsing ambiguity.
+Tabular structures require clear column delimiters. Using spaces as separators is highly fragile because scalar values (like paths or unquoted text fragments) often contain spaces, leading to parsing ambiguity. While comma-separated CSV works for flat files, inline commas in lists and headers make it unsuited as a nested column separator inside structured documents. The horizontal tab (`HTAB`) is a clean, single-byte ASCII character reserved solely for column layout, greatly reducing parsing ambiguity.
 
 ### F.3 Why parsing and schema validation are separate
 
