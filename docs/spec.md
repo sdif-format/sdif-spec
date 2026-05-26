@@ -88,7 +88,7 @@ This document defines the technical specification for SDIF, a compact semantic d
 
 ### 2.1 Stable core contract
 
-This specification document records the stable core specification. The format directive identifies the stable core syntax and semantic contract. The package version may advance independently from the format version.
+This specification document records the stable core specification. The format directive identifies the stable core syntax and semantic contract. `@sdif 1.0` identifies the stable core syntax and semantic contract. The package version may advance independently from the format version.
 
 Stable core behavior includes parsing, the reference AST shape, schema-driven validation, canonical syntax, safe default policies, local includes behind explicit policy, and `.sdif.ai` reversibility to canonical source. Reserved extension surfaces include remote includes, remote schemas, complex namespaces, deep graph validation, digital signatures, advanced type unions, semantic numeric/date normalization, and non-declarative rule execution.
 
@@ -331,9 +331,9 @@ k Plan
 
 A conforming parser MUST construct a syntactic AST representing the document structure. Table cells are captured as raw strings in the initial AST. The parser MUST preserve string literals and quotedness metadata verbatim.
 
-### 18.1 Minimum Abstract Document Model
+### 18.1 Minimum normative AST
 
-The minimum abstract document model consists of the following components:
+The following defines the minimum normative AST for SDIF v1. The minimum abstract document model consists of the following components:
 
 - Directives: Represent meta-commands and configuration.
 - Fields: Represent key-value bindings.
