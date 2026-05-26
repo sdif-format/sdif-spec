@@ -20,6 +20,8 @@
   - [4.1 Comparison with Other Formats](#41-comparison-with-other-formats)
   - [4.2 AI Compatibility and Agent Interoperability](#42-ai-compatibility-and-agent-interoperability)
   - [4.3 Document Lifecycle](#43-document-lifecycle)
+  - [4.4 When to Use SDIF](#44-when-to-use-sdif)
+  - [4.5 When Not to Use SDIF](#45-when-not-to-use-sdif)
 - [5. Goals and Non-Goals](#5-goals-and-non-goals)
   - [5.1 Design Goals](#51-design-goals)
   - [5.2 Non-Goals](#52-non-goals)
@@ -60,12 +62,13 @@
   - [25.3 Canonicalizer Conformance](#253-canonicalizer-conformance)
   - [25.4 Validator Conformance](#254-validator-conformance)
   - [25.5 AI Projection Conformance](#255-ai-projection-conformance)
+- [26. Interoperability Considerations](#26-interoperability-considerations)
 - [Appendix A. Grammar](#appendix-a-grammar)
 - [Appendix B. Examples](#appendix-b-examples)
-- [Appendix C. Python Reference Implementation Notes](#appendix-c-python-reference-implementation-notes)
-- [Appendix D. Reserved Extension Surfaces](#appendix-d-reserved-extension-surfaces)
-- [Appendix E. Changelog](#appendix-e-changelog)
-- [Appendix F. Style Recommendations](#appendix-f-style-recommendations)
+- [Appendix C. Reserved Extension Surfaces](#appendix-c-reserved-extension-surfaces)
+- [Appendix D. Changelog](#appendix-d-changelog)
+- [Appendix E. Style Recommendations](#appendix-e-style-recommendations)
+- [Appendix F. Design Rationale](#appendix-f-design-rationale)
 
 ---
 
@@ -131,22 +134,23 @@ SDIF combines the strict structural model of JSON, the readability of YAML and T
 
 The format is structured around the core principle of maximizing semantic density per token without sacrificing validation safety or parsing determinism.
 
-### 4.1 Comparison with Other Formats
+### 4.1 Relationship to Other Formats
 
-- **JSON**: JSON is universal and excellent for APIs. SDIF is more compact for repeated structured data and more expressive for semantic documents.
-- **YAML**: YAML is human-friendly but highly flexible. SDIF is less ambiguous and easier to canonicalize.
-- **TOML**: TOML is excellent for configuration. SDIF adds compact tables, semantic relations, declarative rules, and canonicalization-oriented semantics.
-- **CSV**: CSV is compact for tables but weak for hierarchy, types, relations, and validation. SDIF adopts tabular compactness without being limited to flat data.
-- **RDF/Turtle**: RDF/Turtle is powerful for semantic graphs. SDIF aims to be more practical for mixed structured documents, validation manifests, and agent-oriented exchange.
-- **Markdown**: Markdown is ideal for prose. SDIF supports bounded prose while preserving a machine-validatable structure.
+SDIF is not intended to replace JSON as the default public API format. JSON remains the most interoperable choice for general-purpose data exchange. SDIF instead targets documents where repeated structure, validation metadata, relations, narrative context, and canonicalization requirements appear together.
+
+Compared with YAML, SDIF intentionally provides fewer syntactic forms. This reduces authoring flexibility but improves parser determinism and makes canonical output easier to specify.
+
+Compared with CSV, SDIF keeps the compactness of declaring tabular columns once, but embeds tables inside a richer document model that can also contain metadata, relations, rules, and narrative blocks.
+
+Compared with TOON-style representations, SDIF shares the goal of reducing repetition for AI context usage, but SDIF also defines source, canonical, and AI profiles as distinct lifecycle surfaces. The AI view is an optimization profile, not the whole format.
+
+Compared with RDF-style graph formats, SDIF supports explicit relations but does not attempt to become a full ontology language. Relations are intended to support validation, traceability, and semantic linking inside practical documents.
 
 ### 4.2 AI Compatibility and Agent Interoperability
 
 SDIF helps AI models by reducing repetition, making semantics explicit, separating structured data from narrative text, distinguishing relations from fields, supporting declared aliases, and reducing syntactic noise compared to JSON.
 
 AI agents processing SDIF MUST distinguish document content, external instructions, and runtime policy. AI tools SHOULD use clear aliases and avoid excessively wide tables.
-
----
 
 ### 4.3 Document Lifecycle
 
@@ -157,6 +161,24 @@ An SDIF document may move through several representations during its lifecycle:
 3. **Schema-Validated Document**: A validator checks the AST against schema-defined types, enums, required fields, allowed tables, relation predicates, and declared rule functions. Declarative rule evaluation may be applied by validators that implement the rule evaluation profile.
 4. **SDIF Canonical**: The source document is canonicalized into a deterministically ordered and stripped representation for stable hashing and signing (removing comments, blank lines, and styling variations).
 5. **SDIF AI View**: For AI context usage, the document is projected into a token-optimized representation using aliases and compact table rows, while preserving reversibility to canonical, semantically equivalent SDIF.
+
+### 4.4 When to Use SDIF
+
+SDIF is recommended for:
+
+- Operational documents and manifests that require stable signing/hashing.
+- Automated workflows and agents exchanging dense data in LLM context windows.
+- Schema-first validation pipelines where data fields must match strict types while retaining descriptive narrative sections.
+
+### 4.5 When Not to Use SDIF
+
+SDIF is not recommended for:
+
+- General-purpose public REST APIs (use JSON instead).
+- Large, multi-gigabyte flat data sets where columnar databases (like Parquet) are required.
+- Storing deeply nested recursive structures that do not naturally map to object blocks and tables.
+
+---
 
 ## 5. Goals and Non-Goals
 
@@ -685,6 +707,17 @@ A conforming AI Projector:
 
 ---
 
+## 26. Interoperability Considerations
+
+To ensure consistent behavior across different implementations, conforming processors MUST adhere to the following rules:
+
+1. **Syntax Strictness**: Conforming processors MUST reject any constructs or syntax styles that are not explicitly permitted by the active profile. Permissive parsing is encouraged only in non-conforming configurations (such as editor plugins providing active autocompletion).
+2. **AST Preservation**: Parsers MUST capture and expose raw table cell values as strings in the initial AST. Any type coercion, number parsing, datetime conversion, or semantic checking MUST be applied during the validation phase, not the raw parsing phase.
+3. **AI View Reversibility**: The SDIF AI View (`.sdif.ai`) MUST be treated as an optimization projection, not as a standalone semantic model. AI projectors and processors MUST ensure that an AI View document is fully and reversibly reconstructible to a canonical, semantically equivalent SDIF document.
+4. **No Custom Syntactic Extensions**: Conforming processors MUST NOT introduce implementation-specific syntaxes, custom inline comments, or alternative column separation mechanisms inside the standard profiles. Custom extensions MUST be constrained to reserved extension surfaces (Appendix C) and declared profile/vocabulary directives.
+
+---
+
 ## Appendix A. Grammar
 
 The complete EBNF grammar for SDIF core syntax:
@@ -932,48 +965,7 @@ rules:
 
 ---
 
-## Appendix C. Python Reference Implementation Notes
-
-### C.1 Command Line Interface
-
-The Python reference CLI is invoked via `sdif` or `python tools/sdif-cli.py`:
-
-```bash
-sdif parse examples/plan.sdif
-sdif canon examples/plan.sdif
-sdif hash examples/plan.sdif
-sdif validate examples/plan.sdif --schema examples/schema.sdif
-sdif tokens examples/plan.sdif
-sdif to-json examples/plan.sdif
-sdif from-json document.json
-sdif ai examples/plan.sdif --alias kind=k --alias status=st
-sdif from-ai examples/plan.sdif.ai
-sdif inspect examples/plan.sdif --json
-sdif fmt examples/plan.sdif --check
-```
-
-### C.2 Token Estimation and tiktoken
-
-The `sdif tokens` CLI checks byte size and estimates token usage. It leverages `tiktoken/cl100k_base` if installed, falling back to a 4-bytes-per-token heuristic.
-
-The repository benchmark derives JSON compact, JSON pretty, YAML, XML, CSV Bundle, SDIF, SDIF AI, and optionally TOON from the same canonical JSON fixture source. `SDIF AI` is produced from the generated SDIF document with the `.sdif.ai` projection so the benchmark tracks the AI-context surface separately from canonical SDIF. For benchmark fairness, that projection chooses the smaller of a headerless context-window view and an explicit alias-header view; aliases are only useful when their decoding header pays for itself. The projection also uses compact table rows and `$` string-preserved columns when those choices reduce repeated syntax without changing semantics. It always reports an `Estimate` column using the same deterministic 4-UTF-8-bytes-per-token fallback as `sdif tokens`, and uses `tiktoken` as the primary ordering and ratio metric when that optional dependency is installed. `CSV Bundle` is intentionally named as a bundle because a full semantic SDIF document may contain metadata, nested values, relations, and rules that cannot fit in a single honest flat CSV table.
-
-### C.3 Reference AST Model
-
-The parser constructs the following AST node structure:
-
-- `Document(directives, statements)`
-- `Directive(name, args)`
-- `Field(key, value, quoted=False)`
-- `ObjectBlock(key, statements)`
-- `Table(name, columns, rows, quoted_columns=frozenset())`
-- `Relation(subject, predicate, object, object_quoted=False)`
-- `Rule(source, expression=None)`
-- `Narrative(key, text)`
-
----
-
-## Appendix D. Reserved Extension Surfaces
+## Appendix C. Reserved Extension Surfaces
 
 Versioned or not-yet-implemented extensions include remote includes, remote schemas, complex namespaces, deep graph validation, digital signatures, advanced type unions, semantic numeric/date normalization, and non-declarative rule execution.
 
@@ -981,17 +973,17 @@ These are explicitly outside the scope of the stable core specification. Conform
 
 ---
 
-## Appendix E. Changelog
+## Appendix D. Changelog
 
 - **1.0.0**: Stable release of the Semantic Data Interchange Format core schema.
 - **1.1.0**: Split specification files to independent repository layout, keeping pure specifications in the `sdif-spec` repository and reference implementation notes decoupled from the normative core.
-- **1.2.0**: Added explanatory narrative and lifecycle model without changing the SDIF 1.0 core format.
+- **1.2.0**: Added explanatory narrative, design principles, document lifecycle, interoperability considerations, and design rationale appendix without changing the SDIF 1.0 core format.
 
 ---
 
-## Appendix F. Style Recommendations
+## Appendix E. Style Recommendations
 
-### F.1 Recommended Document Order
+### E.1 Recommended Document Order
 
 Suggested source order:
 
@@ -1008,8 +1000,38 @@ Suggested source order:
 11. Declarative rules.
 12. Narrative blocks.
 
-### F.2 Naming and Design Best Practices
+### E.2 Naming and Design Best Practices
 
 - Use `snake_case` for keys and dot notation for hierarchical identifiers.
 - Keep tables narrow (e.g., under 8-10 columns).
 - Favor semantic clarity in source relations over cryptic names.
+
+---
+
+## Appendix F. Design Rationale
+
+This appendix provides background details explaining why certain design decisions were made in the SDIF 1.0 specification.
+
+### F.1 Why line-oriented syntax
+
+Line-oriented parsing allows processors to stream files and identify structural errors early (e.g. tracking indentation boundaries line-by-line). It also keeps documents highly readable under standard diff and visual merging tools, preventing the layout drift that is common in deeply nested bracketed or brace-oriented configurations.
+
+### F.2 Why tables use HTAB separators
+
+Tabular structures require clear column delimiters. Using spaces as separators is highly fragile because scalar values (like paths or unquoted text fragments) often contain spaces, leading to parsing ambiguity. While comma-separated CSV works for flat files, inline commas in lists and headers make it unsuited as a nested column separator inside structured documents. The horizontal tab (`HTAB`) is a clean, single-byte ASCII character reserved solely for column layout, ensuring zero parsing ambiguity.
+
+### F.3 Why parsing and schema validation are separate
+
+Decoupling syntax parsing from schema-driven validation ensures that parsers remain lightweight, generic, and fast. A parser can construct a valid syntactic AST without knowing the document's vocabulary or rules, facilitating simple translation to other format ASTs (such as JSON or YAML). The validator then acts as a distinct phase, overlaying semantic rules, type assertions, and dependency constraint checks.
+
+### F.4 Why `.sdif.ai` is a profile, not a separate format
+
+Having `.sdif.ai` share the same parser codebase and AST rules as `.sdif` prevents fragmentation. Keeping the AI View as an optimized projection profile guarantees that any AI View snippet can be reconstructed reversibly into standard Canonical SDIF. This ensures that agent exchanges remain compatible with standard database storage, signing, and local human review tools.
+
+### F.5 Why comments are source-only trivia
+
+Comments are meant for human-to-human context. Removing comments from the canonical AST ensures that adding or modifying inline comments does not alter the document's semantic signature, keeping stable hashes and digital signatures invariant.
+
+### F.6 Why non-declarative rule execution is out of scope
+
+SDIF declarative rules (warn/deny) are validation constraints, not code. Permitting custom code execution inside interchange files introduces severe security vulnerabilities (sandbox escapes, remote execution) and undermines parser portability across languages.
